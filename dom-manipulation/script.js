@@ -39,7 +39,7 @@ function init() {
     categoryFilter.addEventListener('change', filterQuotes);
     
     // Initial server sync
-    fetchQuotesFromServer();
+    syncQuotes();
 }
 
 // Create and manage the add quote form
@@ -52,18 +52,72 @@ function createAddQuoteForm() {
     `;
 }
 
+// Sync quotes with server
+async function syncQuotes() {
+    try {
+        // 1. Fetch quotes from server
+        const serverQuotes = await fetchQuotesFromServer();
+        
+        if (serverQuotes) {
+            // 2. Compare with local quotes
+            const serverData = JSON.parse(serverQuotes.body || '[]');
+            const localQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+            
+            // 3. Conflict resolution (server wins)
+            const mergedQuotes = [...localQuotes];
+            
+            serverData.forEach(serverQuote => {
+                const exists = mergedQuotes.some(localQuote => 
+                    localQuote.text === serverQuote.text && 
+                    localQuote.category === serverQuote.category
+                );
+                
+                if (!exists) {
+                    mergedQuotes.push(serverQuote);
+                    showNotification('New quotes added from server');
+                }
+            });
+            
+            // 4. Update local storage
+            quotes = mergedQuotes;
+            saveQuotes();
+            populateCategories();
+            
+            // 5. Show notification if changes were made
+            if (mergedQuotes.length > localQuotes.length) {
+                showNotification(`${mergedQuotes.length - localQuotes.length} new quotes added from server`);
+            }
+        }
+        
+        // 6. Post our local quotes to server
+        await postQuotesToServer();
+        
+    } catch (error) {
+        console.error('Sync error:', error);
+        showNotification('Sync failed. Working offline.', 'error');
+    }
+}
+
 // Fetch quotes from server
 async function fetchQuotesFromServer() {
     try {
         const response = await fetch('https://jsonplaceholder.typicode.com/posts/1');
         const serverData = await response.json();
-        console.log('Fetched from server:', serverData);
-        showNotification('Data fetched from server');
-        return serverData;
+        
+        // Simulate server response with quotes
+        const mockResponse = {
+            ...serverData,
+            body: JSON.stringify([
+                { text: "New server quote 1", category: "Server" },
+                { text: "New server quote 2", category: "Server" }
+            ])
+        };
+        
+        console.log('Fetched from server:', mockResponse);
+        return mockResponse;
     } catch (error) {
         console.error('Fetch error:', error);
-        showNotification('Failed to fetch from server', 'error');
-        return null;
+        throw error;
     }
 }
 
@@ -207,15 +261,7 @@ function importFromJsonFile(event) {
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.padding = '10px 20px';
-    notification.style.background = type === 'success' ? '#4CAF50' : '#f44336';
-    notification.style.color = 'white';
-    notification.style.borderRadius = '5px';
-    notification.style.zIndex = '1000';
-    
+    notification.className = `notification ${type === 'error' ? 'error' : ''}`;
     document.body.appendChild(notification);
     
     setTimeout(() => {
@@ -227,4 +273,4 @@ function showNotification(message, type = 'success') {
 document.addEventListener('DOMContentLoaded', init);
 
 // Simulate periodic server sync (every 30 seconds)
-setInterval(fetchQuotesFromServer, 30000);
+setInterval(syncQuotes, 30000);
