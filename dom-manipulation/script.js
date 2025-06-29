@@ -52,22 +52,43 @@ function createAddQuoteForm() {
     `;
 }
 
-// Fetch quotes from server (as required by checker)
+// Fetch quotes from server
 async function fetchQuotesFromServer() {
     try {
-        // Simulate fetching from server
         const response = await fetch('https://jsonplaceholder.typicode.com/posts/1');
         const serverData = await response.json();
-        
-        // In a real app, we would merge these with local quotes
         console.log('Fetched from server:', serverData);
         showNotification('Data fetched from server');
-        
-        // Return the data for potential use
         return serverData;
     } catch (error) {
         console.error('Fetch error:', error);
         showNotification('Failed to fetch from server', 'error');
+        return null;
+    }
+}
+
+// Post quotes to server
+async function postQuotesToServer() {
+    try {
+        const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: 'Quote Data',
+                body: JSON.stringify(quotes),
+                userId: 1
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Posted to server:', result);
+        showNotification('Quotes posted to server');
+        return result;
+    } catch (error) {
+        console.error('Post error:', error);
+        showNotification('Failed to post to server', 'error');
         return null;
     }
 }
@@ -84,6 +105,9 @@ function addQuote() {
         document.getElementById('newQuoteText').value = '';
         document.getElementById('newQuoteCategory').value = '';
         showRandomQuote();
+        
+        // Post updated quotes to server
+        postQuotesToServer();
     } else {
         alert('Please enter both quote text and category');
     }
@@ -170,6 +194,9 @@ function importFromJsonFile(event) {
             populateCategories();
             showRandomQuote();
             alert('Quotes imported successfully!');
+            
+            // Post updated quotes to server
+            postQuotesToServer();
         } catch (error) {
             alert('Error importing quotes: Invalid JSON format');
         }
