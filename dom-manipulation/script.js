@@ -9,8 +9,7 @@ let quotes = [
 const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const categoryFilter = document.getElementById('categoryFilter');
-const newQuoteText = document.getElementById('newQuoteText');
-const newQuoteCategory = document.getElementById('newQuoteCategory');
+const addQuoteFormContainer = document.getElementById('addQuoteForm');
 
 // Initialize the application
 function init() {
@@ -26,6 +25,9 @@ function init() {
         categoryFilter.value = lastCategory;
     }
     
+    // Create the add quote form
+    createAddQuoteForm();
+    
     // Populate categories
     populateCategories();
     
@@ -35,6 +37,33 @@ function init() {
     // Set up event listeners
     newQuoteBtn.addEventListener('click', showRandomQuote);
     categoryFilter.addEventListener('change', filterQuotes);
+}
+
+// Create and manage the add quote form
+function createAddQuoteForm() {
+    addQuoteFormContainer.innerHTML = `
+        <h3>Add New Quote</h3>
+        <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+        <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
+        <button onclick="addQuote()">Add Quote</button>
+    `;
+}
+
+// Add a new quote
+function addQuote() {
+    const text = document.getElementById('newQuoteText').value.trim();
+    const category = document.getElementById('newQuoteCategory').value.trim();
+    
+    if (text && category) {
+        quotes.push({ text, category });
+        saveQuotes();
+        populateCategories();
+        document.getElementById('newQuoteText').value = '';
+        document.getElementById('newQuoteCategory').value = '';
+        showRandomQuote();
+    } else {
+        alert('Please enter both quote text and category');
+    }
 }
 
 // Show a random quote
@@ -55,23 +84,6 @@ function showRandomQuote() {
         `;
     } else {
         quoteDisplay.innerHTML = '<p>No quotes found in this category.</p>';
-    }
-}
-
-// Add a new quote
-function addQuote() {
-    const text = newQuoteText.value.trim();
-    const category = newQuoteCategory.value.trim();
-    
-    if (text && category) {
-        quotes.push({ text, category });
-        saveQuotes();
-        populateCategories();
-        newQuoteText.value = '';
-        newQuoteCategory.value = '';
-        showRandomQuote();
-    } else {
-        alert('Please enter both quote text and category');
     }
 }
 
@@ -142,17 +154,14 @@ function importFromJsonFile(event) {
     reader.readAsText(file);
 }
 
-// Server simulation functions (Task 3)
+// Server simulation functions
 async function syncWithServer() {
     try {
         // Simulate fetching from server
         const response = await fetch('https://jsonplaceholder.typicode.com/posts/1');
         const serverData = await response.json();
         
-        // In a real app, you would compare and merge with local data
         console.log('Simulated server sync:', serverData);
-        
-        // For demo purposes, we'll just show a notification
         showNotification('Data synced with server');
     } catch (error) {
         console.error('Sync error:', error);
