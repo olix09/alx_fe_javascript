@@ -46,6 +46,7 @@ function addQuote() {
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
     saveQuotes();
     populateCategories();
+    showRandomQuote(); // Update DOM after adding
     document.getElementById('newQuoteText').value = '';
     document.getElementById('newQuoteCategory').value = '';
     alert('Quote added successfully!');
@@ -105,17 +106,55 @@ function exportQuotes() {
     URL.revokeObjectURL(url);
 }
 
-// Simulate server sync
-function syncWithServer() {
-    fetch('https://jsonplaceholder.typicode.com/posts')
+// Fetch quotes from mock server
+function fetchQuotesFromServer() {
+    return fetch('https://jsonplaceholder.typicode.com/posts')
         .then(response => response.json())
         .then(data => {
-            // Simulated sync - we will just log and update sync status
-            syncStatus.innerText = 'Synced with server at ' + new Date().toLocaleTimeString();
+            const serverQuotes = data.slice(0, 5).map(item => ({
+                text: item.title,
+                category: 'Server'
+            }));
+            return serverQuotes;
+        });
+}
+
+// Post quotes to mock server
+function postQuotesToServer() {
+    return fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        body: JSON.stringify(quotes),
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json());
+}
+
+// Sync quotes with server
+function syncQuotes() {
+    fetchQuotesFromServer()
+        .then(serverQuotes => {
+            let newCount = 0;
+            serverQuotes.forEach(serverQuote => {
+                if (!quotes.some(q => q.text === serverQuote.text)) {
+                    quotes.push(serverQuote);
+                    newCount++;
+                }
+            });
+
+            if (newCount > 0) {
+                saveQuotes();
+                populateCategories();
+                showRandomQuote();
+                syncStatus.innerText = `✅ Synced with ${newCount} new quotes @ ${new Date().toLocaleTimeString()}`;
+            } else {
+                syncStatus.innerText = `✅ Synced (no new quotes) @ ${new Date().toLocaleTimeString()}`;
+            }
+
+            return postQuotesToServer();
         })
         .catch(error => {
-            console.error('Sync error:', error);
-            syncStatus.innerText = 'Sync failed';
+            console.error('Sync failed:', error);
+            syncStatus.innerText = `❌ Sync failed @ ${new Date().toLocaleTimeString()}`;
         });
 }
 
@@ -124,6 +163,7 @@ newQuoteButton.addEventListener('click', showRandomQuote);
 addQuoteButton.addEventListener('click', addQuote);
 importFileInput.addEventListener('change', importFromJsonFile);
 exportQuotesButton.addEventListener('click', exportQuotes);
+categoryFilter.addEventListener('change', filterQuotes);
 
 // Initial Setup
 populateCategories();
@@ -136,5 +176,5 @@ if (lastViewedQuote) {
     quoteDisplay.innerText = lastViewedQuote;
 }
 
-// Start periodic sync
-setInterval(syncWithServer, 30000);
+// Periodic sync every 30 seconds
+setInterval(syncQuotes, 30000);
