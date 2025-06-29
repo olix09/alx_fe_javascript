@@ -65,6 +65,7 @@ async function syncQuotes() {
             
             // 3. Conflict resolution (server wins)
             const mergedQuotes = [...localQuotes];
+            let newQuotesCount = 0;
             
             serverData.forEach(serverQuote => {
                 const exists = mergedQuotes.some(localQuote => 
@@ -74,7 +75,7 @@ async function syncQuotes() {
                 
                 if (!exists) {
                     mergedQuotes.push(serverQuote);
-                    showNotification('New quotes added from server');
+                    newQuotesCount++;
                 }
             });
             
@@ -83,10 +84,11 @@ async function syncQuotes() {
             saveQuotes();
             populateCategories();
             
-            // 5. Show notification if changes were made
-            if (mergedQuotes.length > localQuotes.length) {
-                showNotification(`${mergedQuotes.length - localQuotes.length} new quotes added from server`);
+            // 5. Show appropriate notifications
+            if (newQuotesCount > 0) {
+                showNotification(`${newQuotesCount} new quotes added from server`);
             }
+            showNotification("Quotes synced with server!");
         }
         
         // 6. Post our local quotes to server
@@ -138,12 +140,10 @@ async function postQuotesToServer() {
         
         const result = await response.json();
         console.log('Posted to server:', result);
-        showNotification('Quotes posted to server');
         return result;
     } catch (error) {
         console.error('Post error:', error);
-        showNotification('Failed to post to server', 'error');
-        return null;
+        throw error;
     }
 }
 
