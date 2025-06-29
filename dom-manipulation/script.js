@@ -33,12 +33,12 @@ app.appendChild(syncStatus);
 categoryFilter.onchange = function() {
   currentCategory = this.value;
   localStorage.setItem('selectedCategory', currentCategory);
-  displayRandomQuote();
+  showRandomQuote(); // Changed to showRandomQuote
 };
 
-newQuoteButton.addEventListener('click', displayRandomQuote);
+newQuoteButton.addEventListener('click', showRandomQuote); // Changed to showRandomQuote
 
-// Create Add Quote Form
+// Create Add Quote Form (replaces addQuote function)
 function createAddQuoteForm() {
   const formDiv = document.createElement('div');
   formDiv.style.marginTop = '20px';
@@ -54,11 +54,27 @@ function createAddQuoteForm() {
   inputCategory.style.marginLeft = '10px';
   formDiv.appendChild(inputCategory);
 
-  const addQuoteButton = document.createElement('button');
-  addQuoteButton.innerText = 'Add Quote';
-  addQuoteButton.addEventListener('click', addQuote);
-  addQuoteButton.style.marginLeft = '10px';
-  formDiv.appendChild(addQuoteButton);
+  const addButton = document.createElement('button');
+  addButton.innerText = 'Add Quote';
+  addButton.addEventListener('click', function() {
+    const text = inputText.value.trim();
+    const category = inputCategory.value.trim();
+
+    if (!text || !category) {
+      alert('Both fields are required!');
+      return;
+    }
+
+    quotes.push({ text, category });
+    localStorage.setItem('quotes', JSON.stringify(quotes));
+    populateCategories();
+    showRandomQuote();
+    
+    inputText.value = '';
+    inputCategory.value = '';
+    alert('Quote added successfully!');
+  });
+  formDiv.appendChild(addButton);
 
   app.appendChild(formDiv);
 }
@@ -77,7 +93,8 @@ function populateCategories() {
   categoryFilter.value = currentCategory;
 }
 
-function displayRandomQuote() {
+// Changed from displayRandomQuote to showRandomQuote
+function showRandomQuote() {
   let filtered = currentCategory === 'all' 
     ? quotes 
     : quotes.filter(q => q.category === currentCategory);
@@ -90,30 +107,6 @@ function displayRandomQuote() {
   const randomIndex = Math.floor(Math.random() * filtered.length);
   quoteDisplay.innerText = filtered[randomIndex].text;
   sessionStorage.setItem('lastQuote', filtered[randomIndex].text);
-}
-
-function addQuote() {
-  const textInput = document.getElementById('newQuoteText');
-  const categoryInput = document.getElementById('newQuoteCategory');
-  const text = textInput.value.trim();
-  const category = categoryInput.value.trim();
-
-  if (!text || !category) {
-    alert('Both fields are required!');
-    return;
-  }
-
-  quotes.push({ text, category });
-  saveQuotes();
-  populateCategories();
-  displayRandomQuote();
-  
-  textInput.value = '';
-  categoryInput.value = '';
-}
-
-function saveQuotes() {
-  localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
 // Server Sync Functions with async/await
@@ -158,23 +151,23 @@ async function syncQuotes() {
     });
 
     if (newQuotes > 0) {
-      saveQuotes();
+      localStorage.setItem('quotes', JSON.stringify(quotes));
       populateCategories();
-      syncStatus.textContent = `Synced ${newQuotes} new quotes at ${new Date().toLocaleTimeString()}`;
+      syncStatus.textContent = 'Quotes synced with server! ' + newQuotes + ' new quotes added.';
     } else {
-      syncStatus.textContent = `Already up-to-date at ${new Date().toLocaleTimeString()}`;
+      syncStatus.textContent = 'Quotes synced with server! No new quotes found.';
     }
 
     await postQuotesToServer();
   } catch (error) {
-    syncStatus.textContent = `Sync failed at ${new Date().toLocaleTimeString()}`;
+    syncStatus.textContent = 'Failed to sync with server!';
     console.error('Sync error:', error);
   }
 }
 
 // Initialize
 populateCategories();
-displayRandomQuote();
+showRandomQuote(); // Changed to showRandomQuote
 
 // Restore last viewed quote
 if (sessionStorage.getItem('lastQuote')) {
